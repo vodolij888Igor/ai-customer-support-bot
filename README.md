@@ -41,8 +41,11 @@ This helps reduce manual triage time and improves consistency in support operati
 │   │   └── support_schema.py
 │   └── services/
 │       └── support_service.py
+├── tests/
+│   └── test_generate_support_reply.py
 ├── .env.example
 ├── .gitignore
+├── pytest.ini
 ├── requirements.txt
 └── README.md
 ```
@@ -78,6 +81,15 @@ Server will be available at:
 - Swagger docs: `http://127.0.0.1:8000/docs`
 
 If `OPENAI_API_KEY` is missing, `POST /generate-support-reply` returns **503** with a clear error. If the OpenAI request fails or returns invalid structured data, the API returns **502**.
+
+## Running Tests
+
+Automated tests mock the OpenAI client so they do not call the real API and do not require a valid `OPENAI_API_KEY`.
+
+```bash
+pip install -r requirements.txt
+pytest
+```
 
 ## API Endpoint
 
@@ -131,7 +143,7 @@ The screenshot below shows a successful POST /generate-support-reply request in 
 - Add ticket persistence with PostgreSQL
 - Add authentication and role-based access
 - Add observability (structured logging + metrics)
-- Add test suite (unit + integration tests)
+- Expand automated test coverage (e.g. edge cases, contract tests)
 - Add Docker and CI/CD pipeline
 
 ## Notes for Portfolio Reviewers
