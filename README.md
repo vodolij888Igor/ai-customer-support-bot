@@ -105,6 +105,12 @@ Accepts a customer support message and returns a structured support response.
 }
 ```
 
+## Screenshot
+
+The screenshot below shows a successful POST /generate-support-reply request in FastAPI Swagger UI with a 200 response.
+
+![Swagger UI successful customer support reply response](docs/images/swagger-support-reply-code-200.png)
+
 ## Current Limitations
 
 - Uses placeholder rule-based logic (no real LLM integration yet)
