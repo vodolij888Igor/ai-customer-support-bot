@@ -1,116 +1,129 @@
+import json
+import os
+from typing import Any
+
+from dotenv import load_dotenv
+from openai import APIConnectionError, APIError, APITimeoutError, OpenAI, RateLimitError
+
 from app.schemas.support_schema import SupportReplyRequest, SupportReplyResponse
 
-
-def _classify_category(message: str) -> str:
-    """Classify support category using simple keyword matching."""
-    text = message.lower()
-
-    if any(keyword in text for keyword in ["charged", "billing", "refund", "invoice", "payment"]):
-        return "billing"
-    if any(keyword in text for keyword in ["bug", "error", "not working", "issue", "crash"]):
-        return "technical"
-    if any(keyword in text for keyword in ["cancel", "unsubscribe", "plan", "upgrade", "downgrade"]):
-        return "account"
-    return "general"
+# Load .env early so OPENAI_API_KEY is available for this module.
+load_dotenv()
 
 
-def _detect_priority(category: str, message: str) -> str:
-    """Assign priority based on category and urgency words."""
-    text = message.lower()
-    urgent_words = ["urgent", "asap", "immediately", "right away", "angry", "frustrated"]
+class MissingOpenAIApiKeyError(Exception):
+    """Raised when OPENAI_API_KEY is not configured (service unavailable)."""
 
-    if category == "billing":
-        return "high"
-    if any(word in text for word in urgent_words):
-        return "high"
-    if category == "technical":
-        return "medium"
-    return "low"
+    def __init__(self, message: str = "OpenAI is not configured: set OPENAI_API_KEY in your environment.") -> None:
+        super().__init__(message)
 
 
-def _detect_sentiment(message: str) -> str:
-    """Approximate customer sentiment with lightweight rules."""
-    text = message.lower()
+class OpenAIRequestFailedError(Exception):
+    """Raised when the OpenAI API call fails or returns unusable output (bad gateway)."""
 
-    if any(word in text for word in ["frustrated", "angry", "upset", "charged twice", "disappointed"]):
-        return "frustrated"
-    if any(word in text for word in ["thanks", "thank you", "appreciate"]):
-        return "positive"
-    return "neutral"
+    def __init__(self, message: str = "OpenAI request failed. Please try again later.") -> None:
+        super().__init__(message)
 
 
-def _build_summary(message: str, category: str) -> str:
-    """Create a short, structured summary from the original message."""
-    trimmed = message.strip()
+_DEFAULT_MODEL = "gpt-4o-mini"
 
-    # Provide a cleaner, portfolio-friendly summary for common billing complaints.
-    if category == "billing" and "charged twice" in trimmed.lower():
-        return "Customer reports being charged twice for a subscription."
+_SYSTEM_PROMPT = """You are an expert customer-support triage assistant.
 
-    if len(trimmed) <= 90:
-        return trimmed
-    return f"{trimmed[:87]}..."
+Given the customer's message and context, analyze the case and respond with a single JSON object only (no markdown, no prose outside JSON).
 
+The JSON must have exactly these keys and value types:
+- "category": string, exactly one of:
+  billing, technical_support, account_access, cancellation, feature_request, refund, general_question, other
+- "priority": string, exactly one of: low, medium, high
+- "sentiment": string, exactly one of:
+  calm, confused, frustrated, angry, urgent, positive, neutral
+- "summary": string, one or two sentences summarizing the issue for an internal ticket
+- "suggested_reply": string, a draft reply to the customer using the requested tone; be helpful and accurate
+- "recommended_action": string, one clear next step for the support or billing team
 
-def _build_suggested_reply(customer_name: str, tone: str, category: str) -> str:
-    """Generate a placeholder suggested reply based on tone and category."""
-    normalized_tone = tone.lower().strip()
-
-    if category == "billing":
-        core = (
-            "I am sorry for the billing issue. I will review your account details and help resolve "
-            "the duplicate charge as quickly as possible."
-        )
-    elif category == "technical":
-        core = (
-            "Thanks for reporting this issue. I will investigate what is happening and guide you "
-            "through the next steps to fix it."
-        )
-    elif category == "account":
-        core = (
-            "I can help with your account request. I will verify the account details and provide "
-            "the best next step."
-        )
-    else:
-        core = "Thanks for reaching out. I will review your message and help you with the next step."
-
-    if normalized_tone == "professional":
-        return f"Hi {customer_name}, thank you for contacting support. {core}"
-    if normalized_tone == "friendly":
-        return f"Hi {customer_name}! Thanks for reaching out. {core}"
-    return f"Hello {customer_name}, {core}"
+Rules:
+- Choose category and sentiment based on the customer's message, not assumptions beyond the text.
+- Match priority to business impact and urgency (billing errors and access lockouts are often high).
+- Keep suggested_reply professional; use the customer's name naturally if appropriate.
+- Output valid JSON only."""
 
 
-def _recommended_action(category: str) -> str:
-    """Provide a clear action recommendation for support operations."""
-    if category == "billing":
-        return "Review billing history and issue a refund if duplicate charge is confirmed."
-    if category == "technical":
-        return "Collect error details, reproduce the issue, and escalate to engineering if needed."
-    if category == "account":
-        return "Verify account ownership and process the requested account change."
-    return "Review message details and route the ticket to the correct support workflow."
+def _get_openai_client() -> OpenAI:
+    api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
+    if not api_key:
+        raise MissingOpenAIApiKeyError()
+    return OpenAI(api_key=api_key)
+
+
+def _parse_json_content(content: str) -> dict[str, Any]:
+    text = content.strip()
+    if not text:
+        raise OpenAIRequestFailedError("OpenAI returned an empty response.")
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise OpenAIRequestFailedError(f"OpenAI returned invalid JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise OpenAIRequestFailedError("OpenAI returned a non-object JSON value.")
+    return data
 
 
 def generate_support_reply(payload: SupportReplyRequest) -> SupportReplyResponse:
     """
-    Main service function for generating the structured support response.
+    Analyze the customer message via OpenAI and return a structured support response.
 
-    This uses deterministic placeholder logic for portfolio/demo purposes.
+    Raises:
+        MissingOpenAIApiKeyError: When OPENAI_API_KEY is missing (map to HTTP 503).
+        OpenAIRequestFailedError: When OpenAI fails or output is invalid (map to HTTP 502).
     """
-    category = _classify_category(payload.message)
-    priority = _detect_priority(category, payload.message)
-    sentiment = _detect_sentiment(payload.message)
-    summary = _build_summary(payload.message, category)
-    suggested_reply = _build_suggested_reply(payload.customer_name, payload.tone, category)
-    recommended_action = _recommended_action(category)
+    client = _get_openai_client()
+    model = (os.getenv("OPENAI_MODEL") or _DEFAULT_MODEL).strip() or _DEFAULT_MODEL
 
-    return SupportReplyResponse(
-        customer_name=payload.customer_name,
-        category=category,
-        priority=priority,
-        sentiment=sentiment,
-        summary=summary,
-        suggested_reply=suggested_reply,
-        recommended_action=recommended_action,
+    user_content = (
+        f"Customer name: {payload.customer_name}\n"
+        f"Customer email: {payload.customer_email}\n"
+        f"Product: {payload.product}\n"
+        f"Preferred tone for suggested_reply: {payload.tone}\n\n"
+        f"Customer message:\n{payload.message}"
     )
+
+    try:
+        completion = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": user_content},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.3,
+        )
+    except (APIConnectionError, APITimeoutError, RateLimitError, APIError) as exc:
+        raise OpenAIRequestFailedError(
+            f"OpenAI request failed: {exc.__class__.__name__}: {exc}"
+        ) from exc
+    except Exception as exc:
+        raise OpenAIRequestFailedError(f"Unexpected error calling OpenAI: {exc}") from exc
+
+    choice = completion.choices[0].message.content
+    if choice is None:
+        raise OpenAIRequestFailedError("OpenAI returned no message content.")
+
+    raw = _parse_json_content(choice)
+
+    # Ensure customer_name matches the request (authoritative source).
+    merged = {
+        "customer_name": payload.customer_name,
+        "category": raw.get("category"),
+        "priority": raw.get("priority"),
+        "sentiment": raw.get("sentiment"),
+        "summary": raw.get("summary"),
+        "suggested_reply": raw.get("suggested_reply"),
+        "recommended_action": raw.get("recommended_action"),
+    }
+
+    try:
+        return SupportReplyResponse.model_validate(merged)
+    except Exception as exc:
+        raise OpenAIRequestFailedError(
+            f"OpenAI output did not match the expected schema: {exc}"
+        ) from exc

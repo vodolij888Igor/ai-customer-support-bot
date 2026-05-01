@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -16,13 +18,37 @@ class SupportReplyRequest(BaseModel):
     )
 
 
+SupportCategory = Literal[
+    "billing",
+    "technical_support",
+    "account_access",
+    "cancellation",
+    "feature_request",
+    "refund",
+    "general_question",
+    "other",
+]
+
+SupportPriority = Literal["low", "medium", "high"]
+
+SupportSentiment = Literal[
+    "calm",
+    "confused",
+    "frustrated",
+    "angry",
+    "urgent",
+    "positive",
+    "neutral",
+]
+
+
 class SupportReplyResponse(BaseModel):
     """Structured support output that is ready for AI workflows."""
 
     customer_name: str
-    category: str
-    priority: str
-    sentiment: str
+    category: SupportCategory
+    priority: SupportPriority
+    sentiment: SupportSentiment
     summary: str
     suggested_reply: str
     recommended_action: str

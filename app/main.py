@@ -1,14 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from app.schemas.support_schema import SupportReplyRequest, SupportReplyResponse
-from app.services.support_service import generate_support_reply
-
+from app.services.support_service import (
+    MissingOpenAIApiKeyError,
+    OpenAIRequestFailedError,
+    generate_support_reply,
+)
 
 # Create the FastAPI application instance.
 app = FastAPI(
     title="AI Customer Support Bot API",
     description="A portfolio backend API that transforms customer support messages into AI-ready structured responses.",
-    version="0.1.0",
+    version="0.2.0",
 )
 
 
@@ -23,9 +26,13 @@ def generate_support_reply_endpoint(
     payload: SupportReplyRequest,
 ) -> SupportReplyResponse:
     """
-    Generate a structured support response from customer input.
+    Generate a structured support response from customer input using OpenAI.
 
-    Note:
-    This first version uses placeholder business logic only.
+    Returns 503 if OpenAI is not configured, 502 if the upstream OpenAI call fails.
     """
-    return generate_support_reply(payload)
+    try:
+        return generate_support_reply(payload)
+    except MissingOpenAIApiKeyError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except OpenAIRequestFailedError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc

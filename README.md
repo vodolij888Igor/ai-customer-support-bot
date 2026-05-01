@@ -1,11 +1,12 @@
 # AI Customer Support Bot (FastAPI Backend)
 
-Portfolio project backend for transforming raw customer support messages into AI-ready structured outputs.
+Portfolio project backend for transforming raw customer support messages into AI-ready structured outputs using **OpenAI** for analysis and reply drafting.
 
 ## Project Overview
 
 This project provides a clean, production-oriented FastAPI API that receives a customer support request and returns structured response metadata.  
-The output is designed to be consumed by future AI automation workflows, CRM integrations, and internal support tooling.
+The `POST /generate-support-reply` endpoint calls the **OpenAI API** to classify the message, infer sentiment and priority, and produce a suggested reply plus a recommended internal action.  
+The output is designed to be consumed by AI automation workflows, CRM integrations, and internal support tooling.
 
 ## Business Use Case
 
@@ -27,6 +28,8 @@ This helps reduce manual triage time and improves consistency in support operati
 - FastAPI
 - Pydantic
 - Uvicorn
+- OpenAI API (`openai` Python SDK)
+- python-dotenv (optional `.env` for local development)
 
 ## Project Structure
 
@@ -48,7 +51,8 @@ This helps reduce manual triage time and improves consistency in support operati
 
 1. Create and activate a virtual environment.
 2. Install dependencies.
-3. Run the FastAPI server.
+3. Copy `.env.example` to `.env` and set `OPENAI_API_KEY` (required for `/generate-support-reply`).
+4. Run the FastAPI server.
 
 ### Windows (PowerShell)
 
@@ -72,6 +76,8 @@ Server will be available at:
 
 - API base URL: `http://127.0.0.1:8000`
 - Swagger docs: `http://127.0.0.1:8000/docs`
+
+If `OPENAI_API_KEY` is missing, `POST /generate-support-reply` returns **503** with a clear error. If the OpenAI request fails or returns invalid structured data, the API returns **502**.
 
 ## API Endpoint
 
@@ -113,7 +119,7 @@ The screenshot below shows a successful POST /generate-support-reply request in 
 
 ## Current Limitations
 
-- Uses placeholder rule-based logic (no real LLM integration yet)
+- Requires a valid `OPENAI_API_KEY` and network access to OpenAI
 - No database persistence
 - No authentication/authorization
 - No rate limiting
@@ -121,7 +127,7 @@ The screenshot below shows a successful POST /generate-support-reply request in 
 
 ## Future Improvements
 
-- Integrate OpenAI or another LLM provider for richer response generation
+- Add configurable models, retries, and observability for OpenAI calls
 - Add ticket persistence with PostgreSQL
 - Add authentication and role-based access
 - Add observability (structured logging + metrics)
@@ -130,5 +136,6 @@ The screenshot below shows a successful POST /generate-support-reply request in 
 
 ## Notes for Portfolio Reviewers
 
-This first version focuses on clean API design, schema validation, and service-layer structure.  
-The codebase is intentionally organized for easy extension into a full AI-enabled support platform.
+This version combines clean API design and Pydantic validation with **real OpenAI-powered** triage and reply generation.  
+The service layer maps configuration and upstream failures to **503** / **502** at the HTTP layer.  
+The codebase is organized for easy extension into a full AI-enabled support platform.
