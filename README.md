@@ -131,6 +131,51 @@ The screenshot below shows a successful POST /generate-support-reply request in 
 
 ![Swagger UI successful customer support reply response](docs/images/swagger-support-reply-code-200.png)
 
+## API Usage Examples
+
+**Scenario:** A SaaS company ingests inbound customer support messages and needs to **classify** the issue, **detect sentiment**, **assign priority**, and **draft a professional reply**—all in a single structured response suitable for ticketing tools, CRMs, or human review.
+
+### cURL
+
+With the API running locally (`uvicorn app.main:app --reload`), send a JSON payload to the endpoint:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/generate-support-reply" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_name": "Sarah Johnson",
+    "customer_email": "sarah@example.com",
+    "message": "Hi, I was charged twice for my subscription this month. Can you help me fix this?",
+    "product": "SaaS Subscription",
+    "tone": "professional"
+  }'
+```
+
+On Windows PowerShell, use `curl.exe` or invoke `Invoke-RestMethod` with the same URL, header, and JSON body.
+
+### Example successful JSON response
+
+A **200 OK** response body has this shape (values may vary slightly depending on the model output):
+
+```json
+{
+  "customer_name": "Sarah Johnson",
+  "category": "billing",
+  "priority": "high",
+  "sentiment": "frustrated",
+  "summary": "Customer reports being charged twice for a subscription.",
+  "suggested_reply": "Hi Sarah, thank you for contacting us. I am sorry about the duplicate charge. I will review your billing history and work with you to resolve this promptly.",
+  "recommended_action": "Review billing history and issue a refund if duplicate charge is confirmed."
+}
+```
+
+### Postman
+
+1. Create a new request: method **POST**, URL **`http://127.0.0.1:8000/generate-support-reply`**.
+2. Open **Headers** and add **`Content-Type`** = **`application/json`**.
+3. Open **Body**, select **raw**, choose **JSON**, and paste the same JSON fields as in the cURL example (`customer_name`, `customer_email`, `message`, `product`, `tone`).
+4. Click **Send**. For a successful call, verify the response includes **`customer_name`**, **`category`**, **`priority`**, **`sentiment`**, **`summary`**, **`suggested_reply`**, and **`recommended_action`**.
+
 ## Current Limitations
 
 - Requires a valid `OPENAI_API_KEY` and network access to OpenAI
