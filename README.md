@@ -218,6 +218,35 @@ This repository is a **backend portfolio project**—a focused API demonstration
 
 **Future versions** could add database storage, conversation history, authentication, deployment hardening, CRM/email/chat integrations, and a frontend dashboard—building on the same API contract.
 
+## Business Value
+
+This project shows how **customer support messages can be analyzed automatically with AI** to cut down manual triage: classifying the issue, estimating **sentiment**, assigning **priority**, and producing **professional reply drafts** in one structured pass. That pattern can be reused or extended for **SaaS** products, **ecommerce** stores, **service businesses**, **online platforms**, **agencies**, or **internal support teams** that want consistent, faster first responses without replacing human judgment where it matters.
+
+## Example Use Cases
+
+- Billing issue classification and reply drafting
+- Refund request triage
+- Technical support message summarization
+- Customer sentiment detection
+- Support priority assignment
+- Drafting professional customer replies
+- Preparing support tickets before CRM or helpdesk import
+- Reducing repetitive manual support work
+
+## Future Customer Support Integration Plan
+
+**Today**, this API accepts customer support input as **JSON over HTTP** only—there is no live connection to email, chat, or third-party tools in this repository.
+
+**Next steps** for a productized version could include:
+
+- Inbound connectors for real channels (e.g. **email**, **chat widgets**, **Slack**, **CRM** or **helpdesk** APIs).
+- **Persistent conversation history** in a database for auditing and continuity.
+- A **frontend dashboard** for support agents to review, edit, and approve AI-suggested replies.
+- Enriched response payloads—for example **`category`**, **`priority`**, **`sentiment`**, **`summary`**, **`suggested_reply`**, **`recommended_action`**, plus optional fields such as **`assigned_team`** and **`processed_at`**.
+- **Multi-language** replies, **escalation rules**, and **human-in-the-loop** review workflows so automation supports the team instead of bypassing it.
+
+These items describe a **roadmap**, not features shipped in the current repo.
+
 ## Future Improvements
 
 - Add configurable models, retries, and observability for OpenAI calls
