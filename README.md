@@ -1,5 +1,7 @@
 # AI Customer Support Bot (FastAPI Backend)
 
+[![Tests](https://github.com/vodolij888Igor/ai-customer-support-bot/actions/workflows/tests.yml/badge.svg)](https://github.com/vodolij888Igor/ai-customer-support-bot/actions/workflows/tests.yml)
+
 Portfolio project backend for transforming raw customer support messages into AI-ready structured outputs using **OpenAI** for analysis and reply drafting.
 
 ## Project Overview
