@@ -176,13 +176,47 @@ A **200 OK** response body has this shape (values may vary slightly depending on
 3. Open **Body**, select **raw**, choose **JSON**, and paste the same JSON fields as in the cURL example (`customer_name`, `customer_email`, `message`, `product`, `tone`).
 4. Click **Send**. For a successful call, verify the response includes **`customer_name`**, **`category`**, **`priority`**, **`sentiment`**, **`summary`**, **`suggested_reply`**, and **`recommended_action`**.
 
-## Current Limitations
+## Architecture
 
-- Requires a valid `OPENAI_API_KEY` and network access to OpenAI
-- No database persistence
-- No authentication/authorization
-- No rate limiting
-- No frontend client
+This project follows a small, layered layout suitable for a portfolio backend:
+
+- The **FastAPI** app exposes **`POST /generate-support-reply`** as the main integration point.
+- **Pydantic** schemas validate both the incoming request and the structured response.
+- A **service layer** encapsulates OpenAI-powered customer support analysis and reply generation (classification, sentiment, priority, summary, suggested reply, and recommended action).
+- **Environment variables** (including `OPENAI_API_KEY`) are loaded from a **`.env`** file for local development, alongside `.env.example` as a template.
+- **Swagger UI** at `/docs` provides interactive API testing without extra tooling.
+- **Automated tests** mock the OpenAI client so the API can be exercised safely without real API calls or credentials.
+- The current release accepts customer support input as **JSON** over HTTP; there is no separate message queue or channel integration in this repository.
+
+**Request flow (high level):**
+
+```text
+Client / Swagger / Postman
+        ↓
+FastAPI route: POST /generate-support-reply
+        ↓
+Pydantic validation
+        ↓
+Customer support service layer
+        ↓
+OpenAI API
+        ↓
+JSON response: category, priority, sentiment, summary, suggested_reply, recommended_action
+```
+
+## Limitations
+
+This repository is a **backend portfolio project**—a focused API demonstration—not a full customer support platform.
+
+- It does **not** include a **database** yet.
+- It does **not** store **conversation history** yet.
+- It does **not** include **user authentication** or authorization yet.
+- It does **not** include a **frontend dashboard** yet.
+- It does **not** integrate with **live channels** such as email, chat widgets, Slack, or CRM systems yet.
+- It is intended as a **clean local API demo**; production concerns such as **rate limiting** and hardened deployment are out of scope for this version.
+- Live calls require a valid **`OPENAI_API_KEY`** and network access to OpenAI.
+
+**Future versions** could add database storage, conversation history, authentication, deployment hardening, CRM/email/chat integrations, and a frontend dashboard—building on the same API contract.
 
 ## Future Improvements
 
