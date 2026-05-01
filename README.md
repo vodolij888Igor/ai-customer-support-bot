@@ -227,6 +227,26 @@ This repository is a **backend portfolio project**—a focused API demonstration
 - Expand automated test coverage (e.g. edge cases, contract tests)
 - Add Docker and CI/CD pipeline
 
+## Quality Checklist
+
+Portfolio-ready deliverables completed for this repository:
+
+- [x] FastAPI backend implemented
+- [x] `POST /generate-support-reply` endpoint working
+- [x] Real OpenAI API integration added
+- [x] Customer support messages supported through JSON input
+- [x] Swagger UI tested successfully
+- [x] Screenshot added to README
+- [x] API usage examples included
+- [x] Automated tests added with pytest
+- [x] OpenAI calls mocked in tests
+- [x] GitHub Actions CI added
+- [x] Environment variables handled with `.env`
+- [x] `.env` excluded from GitHub
+- [x] Architecture documented
+- [x] Limitations documented
+- [x] Project pushed to GitHub
+
 ## Notes for Portfolio Reviewers
 
 This version combines clean API design and Pydantic validation with **real OpenAI-powered** triage and reply generation.  
